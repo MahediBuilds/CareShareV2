@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { toast } from '@/hooks/use-toast';
 import { Mail, Phone, Loader } from 'lucide-react';
+import PostDetailDialog from './PostDetailDialog';
 
 interface Post {
   id: string;
@@ -142,7 +143,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
   const isClaimedByCurrentUser = post.claimed && post.claimedBy === user?.id;
 
-  return (
+  const CardContent_Component = (
     <Card className="h-full hover:shadow-lg transition-shadow duration-200 border-emerald-100">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
@@ -259,6 +260,20 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       </CardFooter>
     </Card>
   );
+
+  // For clothes posts, wrap in PostDetailDialog to make them clickable
+  if (post.type === 'clothes') {
+    return (
+      <PostDetailDialog post={post}>
+        <div className="cursor-pointer">
+          {CardContent_Component}
+        </div>
+      </PostDetailDialog>
+    );
+  }
+
+  // For other posts, return the card as is
+  return CardContent_Component;
 };
 
 export default PostCard;
