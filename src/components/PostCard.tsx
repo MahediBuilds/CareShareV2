@@ -23,6 +23,9 @@ interface Post {
   category?: string;
   timeNeeded?: string;
   items?: string[];
+  payment?: number;
+  paymentType?: 'fixed' | 'negotiable';
+  currency?: string;
 }
 
 interface PostCardProps {
@@ -52,6 +55,12 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     if (diff <= 0) return 'Expired';
     if (hours > 0) return `${hours}h ${minutes}m left`;
     return `${minutes}m left`;
+  };
+
+  const formatPayment = (amount: number, currency: string = 'INR', paymentType: string = 'fixed') => {
+    const symbol = currency === 'USD' ? '$' : '₹';
+    const typeText = paymentType === 'negotiable' ? ' (negotiable)' : '';
+    return `${symbol}${amount}${typeText}`;
   };
 
   const handleClaim = () => {
@@ -131,6 +140,12 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               ⏱️ {post.timeNeeded}
             </Badge>
           )}
+
+          {post.payment && (
+            <Badge variant="outline" className="text-xs bg-green-50 border-green-300 text-green-700 font-semibold">
+              💰 {formatPayment(post.payment, post.currency, post.paymentType)}
+            </Badge>
+          )}
         </div>
 
         {post.items && post.items.length > 0 && (
@@ -157,7 +172,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             onClick={handleClaim}
             className="w-full bg-gradient-to-r from-emerald-500 to-orange-500 hover:from-emerald-600 hover:to-orange-600 text-white"
           >
-            Claim
+            {post.type === 'errand' && post.payment ? 'Accept Errand' : 'Claim'}
           </Button>
         )}
       </CardFooter>

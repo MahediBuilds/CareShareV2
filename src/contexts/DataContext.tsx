@@ -18,6 +18,10 @@ interface Post {
   category?: string;
   timeNeeded?: string;
   items?: string[];
+  // New payment fields for errands
+  payment?: number;
+  paymentType?: 'fixed' | 'negotiable';
+  currency?: string;
 }
 
 interface DataContextType {
