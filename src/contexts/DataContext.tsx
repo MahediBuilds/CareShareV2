@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 interface Post {
@@ -22,6 +21,8 @@ interface Post {
   payment?: number;
   paymentType?: 'fixed' | 'negotiable';
   currency?: string;
+  // Image field for posts
+  image?: string;
 }
 
 interface DataContextType {

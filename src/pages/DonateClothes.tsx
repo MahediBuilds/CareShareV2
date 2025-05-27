@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { toast } from '@/hooks/use-toast';
 import { BENGALURU_LOCALITIES, CLOTHING_CATEGORIES, CLOTHING_SIZES } from '@/lib/constants';
+import { Upload, X, Image } from 'lucide-react';
 
 const DonateClothes = () => {
   const { user } = useAuth();
@@ -26,6 +27,8 @@ const DonateClothes = () => {
     locality: '',
   });
   const [loading, setLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +45,10 @@ const DonateClothes = () => {
     setLoading(true);
 
     try {
+      // For now, we'll just store the image name/reference
+      // In a real app, you'd upload to a storage service
+      const imageRef = selectedImage ? selectedImage.name : undefined;
+
       addPost({
         type: 'clothes',
         title: formData.title,
@@ -51,6 +58,7 @@ const DonateClothes = () => {
         userEmail: user.email || '',
         size: formData.size,
         category: formData.category,
+        image: imageRef, // Add image reference to the post
       });
 
       toast({
@@ -72,6 +80,43 @@ const DonateClothes = () => {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "File too large",
+          description: "Please select an image smaller than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an image file",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setSelectedImage(file);
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
   };
 
   if (!user) {
@@ -163,6 +208,55 @@ const DonateClothes = () => {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="image">Add Photo (Optional)</Label>
+                <div className="border-2 border-dashed border-emerald-200 rounded-lg p-6 text-center">
+                  {imagePreview ? (
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="max-w-full h-48 object-cover mx-auto rounded-lg"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={removeImage}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Image className="w-12 h-12 mx-auto text-emerald-400" />
+                      <div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                          onClick={() => document.getElementById('image-upload')?.click()}
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload Photo
+                        </Button>
+                        <p className="text-sm text-gray-500 mt-2">
+                          PNG, JPG up to 5MB
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <Input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="locality">Locality *</Label>
                 <Select value={formData.locality} onValueChange={(value) => handleInputChange('locality', value)}>
                   <SelectTrigger className="border-emerald-200 focus:border-emerald-400">
@@ -185,6 +279,7 @@ const DonateClothes = () => {
                   <li>• Be honest about any wear and tear</li>
                   <li>• Include quantity if donating multiple items</li>
                   <li>• Consider seasonal appropriateness</li>
+                  <li>• Adding a photo helps others see the condition</li>
                 </ul>
               </div>
               
