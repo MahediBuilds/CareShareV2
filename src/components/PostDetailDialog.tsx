@@ -42,6 +42,14 @@ const PostDetailDialog: React.FC<PostDetailDialogProps> = ({ post, children }) =
   const [isLoading, setIsLoading] = React.useState(false);
   const [showContactInfo, setShowContactInfo] = React.useState(false);
 
+  // Debug log to see what image data we have
+  React.useEffect(() => {
+    if (post.type === 'clothes' && post.image) {
+      console.log('Post image data:', post.image);
+      console.log('Is base64:', post.image.startsWith('data:'));
+    }
+  }, [post.image, post.type]);
+
   const getTimeUntilExpiry = (expiry: Date) => {
     const now = new Date();
     const diff = expiry.getTime() - now.getTime();
@@ -158,15 +166,21 @@ const PostDetailDialog: React.FC<PostDetailDialogProps> = ({ post, children }) =
           {/* Image for clothes posts */}
           {post.type === 'clothes' && post.image && (
             <div className="rounded-lg overflow-hidden">
-              <img
-                src={post.image}
-                alt={post.title}
-                className="w-full h-64 object-cover"
-                onError={(e) => {
-                  console.log('Failed to load image:', post.image);
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
+              {post.image.startsWith('data:') ? (
+                <img
+                  src={post.image}
+                  alt={post.title}
+                  className="w-full h-64 object-cover"
+                  onError={(e) => {
+                    console.log('Failed to load base64 image:', post.image?.substring(0, 50) + '...');
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="w-full h-64 bg-gray-100 flex items-center justify-center">
+                  <p className="text-gray-500">Image not available</p>
+                </div>
+              )}
             </div>
           )}
 
