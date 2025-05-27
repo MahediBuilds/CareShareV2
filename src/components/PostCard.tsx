@@ -3,10 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { toast } from '@/hooks/use-toast';
-import { Mail, Phone } from 'lucide-react';
+import { Mail, Phone, Loader } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -37,6 +38,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const { user } = useAuth();
   const { claimPost } = useData();
   const [showContactInfo, setShowContactInfo] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -65,7 +67,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     return `${symbol}${amount}${typeText}`;
   };
 
-  const handleClaim = () => {
+  const handleClaimConfirm = async () => {
     if (!user) {
       toast({
         title: "Please login",
@@ -84,8 +86,15 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       return;
     }
 
+    setIsLoading(true);
+
+    // Show loading for 2 seconds
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
     claimPost(post.id, user.id);
     setShowContactInfo(true);
+    setIsLoading(false);
+    
     toast({
       title: "Successfully claimed!",
       description: `You have claimed this ${post.type}. Contact information is now available.`,
@@ -215,12 +224,37 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             {isClaimedByCurrentUser && <ContactDialog />}
           </div>
         ) : (
-          <Button 
-            onClick={handleClaim}
-            className="w-full bg-gradient-to-r from-emerald-500 to-orange-500 hover:from-emerald-600 hover:to-orange-600 text-white"
-          >
-            {post.type === 'errand' && post.payment ? 'Accept Errand' : 'Claim'}
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                className="w-full bg-gradient-to-r from-emerald-500 to-orange-500 hover:from-emerald-600 hover:to-orange-600 text-white"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader className="w-4 h-4 mr-2 animate-spin" />
+                    Claiming...
+                  </>
+                ) : (
+                  post.type === 'errand' && post.payment ? 'Accept Errand' : 'Claim'
+                )}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirm Claim</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to claim this {post.type}? Once claimed, you'll be able to contact the owner and coordinate the pickup/delivery.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleClaimConfirm}>
+                  Yes, Claim It
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
       </CardFooter>
     </Card>
