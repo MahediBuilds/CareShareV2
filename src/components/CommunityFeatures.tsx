@@ -1,14 +1,17 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 const CommunityFeatures = () => {
+  const [expandedFeature, setExpandedFeature] = useState<number | null>(null);
+
   const features = [
     {
       title: "Local Food Sharing",
       description: "Connect with neighbors to share fresh produce, home-cooked meals, and pantry items safely within your community.",
+      summary: "Our food sharing network helps reduce waste while ensuring no one goes hungry. Members can post available meals, organize potluck events, and coordinate food drives. All exchanges follow safety guidelines and community standards.",
       icon: "🥘",
       stats: "2,500+ meals shared",
       color: "bg-orange-100 border-orange-200",
@@ -17,6 +20,7 @@ const CommunityFeatures = () => {
     {
       title: "Clothing Exchange Network",
       description: "Give clothes a second life by sharing with families who need them. From baby clothes to work attire.",
+      summary: "Transform your closet cleanouts into community resources. Our clothing exchange includes size-sorting systems, seasonal collections, and special categories for professional wear, children's clothes, and formal attire.",
       icon: "👔",
       stats: "1,800+ items exchanged",
       color: "bg-blue-100 border-blue-200",
@@ -25,6 +29,7 @@ const CommunityFeatures = () => {
     {
       title: "Neighbor Helping Hands",
       description: "Offer or request help with daily tasks like grocery shopping, pet sitting, or moving assistance.",
+      summary: "Build meaningful connections while getting things done. Our platform includes skill matching, scheduling tools, and a reputation system to ensure reliable, trustworthy assistance for everything from tech support to garden care.",
       icon: "🤲",
       stats: "850+ acts of kindness",
       color: "bg-emerald-100 border-emerald-200",
@@ -33,12 +38,17 @@ const CommunityFeatures = () => {
     {
       title: "Community Events Hub",
       description: "Organize and join local events, from neighborhood cleanups to potluck dinners and skill sharing.",
+      summary: "Strengthen community bonds through shared experiences. Features include event planning tools, RSVP management, and categories for social gatherings, educational workshops, and volunteer opportunities.",
       icon: "🎉",
       stats: "200+ events hosted",
       color: "bg-purple-100 border-purple-200",
       badgeColor: "bg-purple-500"
     }
   ];
+
+  const toggleFeature = (index: number) => {
+    setExpandedFeature(expandedFeature === index ? null : index);
+  };
 
   return (
     <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50">
@@ -66,24 +76,21 @@ const CommunityFeatures = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 mb-6">{feature.description}</p>
+                {expandedFeature === index && (
+                  <div className="bg-white/70 rounded-lg p-4 mb-4 border border-gray-200">
+                    <p className="text-gray-700 text-sm leading-relaxed">{feature.summary}</p>
+                  </div>
+                )}
                 <Button 
                   variant="outline" 
                   className="w-full border-gray-300 text-gray-700 hover:bg-white/80"
+                  onClick={() => toggleFeature(index)}
                 >
-                  Learn More
+                  {expandedFeature === index ? 'Show Less' : 'Learn More'}
                 </Button>
               </CardContent>
             </Card>
           ))}
-        </div>
-
-        <div className="text-center mt-12">
-          <Button 
-            size="lg"
-            className="bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600 text-white px-8 py-3"
-          >
-            Explore All Features
-          </Button>
         </div>
       </div>
     </section>
