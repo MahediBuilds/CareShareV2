@@ -1,11 +1,12 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { toast } from '@/hooks/use-toast';
+import { Mail, Phone } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -35,6 +36,7 @@ interface PostCardProps {
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const { user } = useAuth();
   const { claimPost } = useData();
+  const [showContactInfo, setShowContactInfo] = useState(false);
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -83,11 +85,53 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     }
 
     claimPost(post.id, user.id);
+    setShowContactInfo(true);
     toast({
       title: "Successfully claimed!",
-      description: `You have claimed this ${post.type}. Contact ${post.userEmail} for details.`,
+      description: `You have claimed this ${post.type}. Contact information is now available.`,
     });
   };
+
+  const ContactDialog = () => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="mt-2">
+          <Mail className="w-4 h-4 mr-2" />
+          Contact Owner
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Contact Information</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="flex items-center space-x-3">
+            <Mail className="w-5 h-5 text-emerald-600" />
+            <div>
+              <p className="font-medium">Email</p>
+              <p className="text-gray-600">{post.userEmail}</p>
+            </div>
+          </div>
+          {user?.user_metadata?.phone && (
+            <div className="flex items-center space-x-3">
+              <Phone className="w-5 h-5 text-emerald-600" />
+              <div>
+                <p className="font-medium">Phone</p>
+                <p className="text-gray-600">{user.user_metadata.phone}</p>
+              </div>
+            </div>
+          )}
+          <div className="bg-emerald-50 p-3 rounded-lg">
+            <p className="text-sm text-emerald-800">
+              <strong>About this {post.type}:</strong> {post.title}
+            </p>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const isClaimedByCurrentUser = post.claimed && post.claimedBy === user?.id;
 
   return (
     <Card className="h-full hover:shadow-lg transition-shadow duration-200 border-emerald-100">
@@ -162,11 +206,14 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         </p>
       </CardContent>
       
-      <CardFooter>
+      <CardFooter className="flex flex-col space-y-2">
         {post.claimed ? (
-          <Badge variant="secondary" className="w-full justify-center py-2">
-            Already Claimed
-          </Badge>
+          <div className="w-full">
+            <Badge variant="secondary" className="w-full justify-center py-2 mb-2">
+              Already Claimed
+            </Badge>
+            {isClaimedByCurrentUser && <ContactDialog />}
+          </div>
         ) : (
           <Button 
             onClick={handleClaim}

@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Layout from '@/components/Layout';
+import ClaimedPostCard from '@/components/ClaimedPostCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 
@@ -107,9 +107,11 @@ const Profile = () => {
           )}
 
           {showClaimedStatus && post.claimed && (
-            <Badge variant="secondary" className="text-xs">
-              ✅ Claimed
-            </Badge>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary" className="text-xs">
+                ✅ Claimed by: {post.claimedBy === user.id ? 'You' : 'Someone else'}
+              </Badge>
+            </div>
           )}
         </div>
 
@@ -229,7 +231,11 @@ const Profile = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {claimedPosts.map((post) => (
-                  <PostCard key={post.id} post={post} />
+                  <ClaimedPostCard 
+                    key={post.id} 
+                    post={post}
+                    ownerPhone={user?.user_metadata?.phone}
+                  />
                 ))}
               </div>
             )}
