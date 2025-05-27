@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   appName: 'CareShare',
   webDir: 'dist',
   server: {
-    url: 'https://db11868c-bcbd-4060-86bc-6e9fead2bdcd.lovableproject.com?forceHideBadge=true',
+    url: 'https://caresharev2.netlify.app',
     cleartext: true
   },
   plugins: {
