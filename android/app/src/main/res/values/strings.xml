@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CareShare</string>
+    <string name="title_activity_main">CareShare</string>
+    <string name="package_name">app.lovable.db11868cbcbd406086bc6e9fead2bdcd</string>
+    <string name="custom_url_scheme">app.lovable.db11868cbcbd406086bc6e9fead2bdcd</string>
+</resources>
