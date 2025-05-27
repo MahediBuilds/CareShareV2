@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,8 +21,15 @@ const Register = () => {
     locality: '',
   });
   const [loading, setLoading] = useState(false);
-  const { signUp } = useAuth();
+  const { signUp, user } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +47,15 @@ const Register = () => {
       toast({
         title: "Password too short",
         description: "Password must be at least 6 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.fullName || !formData.phone || !formData.locality) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields",
         variant: "destructive",
       });
       return;
@@ -96,7 +112,7 @@ const Register = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
+                <Label htmlFor="fullName">Full Name *</Label>
                 <Input
                   id="fullName"
                   type="text"
@@ -109,7 +125,7 @@ const Register = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
                   type="email"
@@ -122,7 +138,7 @@ const Register = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone">Phone Number *</Label>
                 <Input
                   id="phone"
                   type="tel"
@@ -135,7 +151,7 @@ const Register = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="locality">Locality</Label>
+                <Label htmlFor="locality">Locality *</Label>
                 <Select value={formData.locality} onValueChange={(value) => handleInputChange('locality', value)}>
                   <SelectTrigger className="border-emerald-200 focus:border-emerald-400">
                     <SelectValue placeholder="Select your locality" />
@@ -151,7 +167,7 @@ const Register = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Password *</Label>
                 <Input
                   id="password"
                   type="password"
@@ -164,7 +180,7 @@ const Register = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Label htmlFor="confirmPassword">Confirm Password *</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
