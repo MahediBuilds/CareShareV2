@@ -159,12 +159,12 @@ const PostDetailDialog: React.FC<PostDetailDialogProps> = ({ post, children }) =
           {post.type === 'clothes' && post.image && (
             <div className="rounded-lg overflow-hidden">
               <img
-                src={`/uploads/${post.image}`}
+                src={post.image}
                 alt={post.title}
                 className="w-full h-64 object-cover"
                 onError={(e) => {
-                  // Fallback to a placeholder if image fails to load
-                  e.currentTarget.src = '/placeholder.svg';
+                  console.log('Failed to load image:', post.image);
+                  e.currentTarget.style.display = 'none';
                 }}
               />
             </div>
