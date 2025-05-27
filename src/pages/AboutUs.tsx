@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,18 +8,26 @@ const AboutUs = () => {
     {
       name: "Zain Mahedi",
       role: "Co-Founder & Developer",
+      bio: "Passionate about building technology that brings communities together",
+      skills: ["Full-Stack Development", "Community Building"]
     },
     {
       name: "Yeruva Taniya Paul",
       role: "Co-Founder & Designer",
+      bio: "Creating beautiful, user-centered experiences that make a difference",
+      skills: ["UI/UX Design", "Visual Identity"]
     },
     {
       name: "Vimarsh Buyyani",
       role: "Co-Founder & Product Lead",
+      bio: "Dedicated to solving real-world problems through innovative solutions",
+      skills: ["Product Strategy", "User Research"]
     },
     {
       name: "Tanmay Aggarwal",
       role: "Co-Founder & Technical Lead",
+      bio: "Engineering scalable solutions for community-driven platforms",
+      skills: ["System Architecture", "Technical Leadership"]
     },
   ];
 
@@ -100,32 +107,73 @@ const AboutUs = () => {
             </div>
           </div>
 
-          {/* Team Section */}
+          {/* Enhanced Team Section */}
           <div className="mb-16">
-            <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">Meet Our Team</h2>
-            <p className="text-lg text-gray-600 text-center mb-12 max-w-2xl mx-auto">
-              CareShare was founded by a passionate team of individuals who believe in the power of community 
-              and technology to create positive change.
-            </p>
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-gray-800 mb-4">Meet Our Team</h2>
+              <div className="w-24 h-1 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto mb-6"></div>
+              <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                CareShare was founded by a passionate team of individuals who believe in the transformative 
+                power of community and technology. Each bringing unique expertise and a shared vision of 
+                creating meaningful connections between neighbors.
+              </p>
+            </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
               {teamMembers.map((member, index) => (
-                <Card key={index} className="text-center border-emerald-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                  <CardHeader>
-                    <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-                      <span className="text-white font-bold text-2xl">
-                        {member.name.split(' ').map(n => n[0]).join('')}
-                      </span>
+                <Card key={index} className="group relative overflow-hidden border-2 border-emerald-100 hover:border-emerald-300 hover:shadow-xl transition-all duration-500 hover:-translate-y-2 bg-white/80 backdrop-blur-sm">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-orange-500"></div>
+                  
+                  <CardHeader className="text-center pb-4">
+                    <div className="relative mx-auto mb-6">
+                      <div className="w-24 h-24 bg-gradient-to-br from-emerald-500 via-emerald-600 to-orange-500 rounded-full mx-auto flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                        <span className="text-white font-bold text-3xl">
+                          {member.name.split(' ').map(n => n[0]).join('')}
+                        </span>
+                      </div>
+                      <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-16 h-16 bg-gradient-to-br from-emerald-400 to-orange-400 rounded-full opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
                     </div>
-                    <CardTitle className="text-lg">{member.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
+                    
+                    <CardTitle className="text-xl font-bold text-gray-800 mb-2">
+                      {member.name}
+                    </CardTitle>
+                    
+                    <Badge variant="secondary" className="bg-gradient-to-r from-emerald-100 to-orange-100 text-emerald-800 border-emerald-200 font-medium">
                       {member.role}
                     </Badge>
+                  </CardHeader>
+                  
+                  <CardContent className="text-center pt-0">
+                    <p className="text-gray-600 text-sm leading-relaxed mb-4 italic">
+                      "{member.bio}"
+                    </p>
+                    
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Expertise
+                      </p>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {member.skills.map((skill, skillIndex) => (
+                          <span 
+                            key={skillIndex}
+                            className="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs rounded-full border border-emerald-200"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
+            </div>
+            
+            <div className="text-center mt-12">
+              <div className="inline-flex items-center space-x-2 text-sm text-gray-500">
+                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                <span>Building the future of community sharing, together</span>
+                <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+              </div>
             </div>
           </div>
 
