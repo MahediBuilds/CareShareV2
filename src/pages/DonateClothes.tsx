@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -45,10 +44,6 @@ const DonateClothes = () => {
     setLoading(true);
 
     try {
-      // For now, we'll just store the image name/reference
-      // In a real app, you'd upload to a storage service
-      const imageRef = selectedImage ? selectedImage.name : undefined;
-
       addPost({
         type: 'clothes',
         title: formData.title,
@@ -58,7 +53,7 @@ const DonateClothes = () => {
         userEmail: user.email || '',
         size: formData.size,
         category: formData.category,
-        image: imageRef, // Add image reference to the post
+        image: imagePreview || undefined, // Use the base64 data instead of filename
       });
 
       toast({
