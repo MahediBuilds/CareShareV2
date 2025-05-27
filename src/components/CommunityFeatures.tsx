@@ -43,6 +43,24 @@ const CommunityFeatures = () => {
       stats: "200+ events hosted",
       color: "bg-purple-100 border-purple-200",
       badgeColor: "bg-purple-500"
+    },
+    {
+      title: "Skill Sharing & Learning Exchange",
+      description: "Share your expertise and learn from others in your community. From language lessons to professional skills.",
+      summary: "Connect with neighbors to exchange knowledge and skills. Our platform facilitates language exchange programs, professional workshops, tutoring sessions, and creative classes. Match with others based on skills offered and needed, schedule sessions, and build lasting learning relationships.",
+      icon: "🎓",
+      stats: "150+ skills shared",
+      color: "bg-yellow-100 border-yellow-200",
+      badgeColor: "bg-yellow-500"
+    },
+    {
+      title: "Safety & Emergency Support",
+      description: "Build a reliable safety network with your neighbors for emergency situations and daily security.",
+      summary: "Create a trusted emergency response network in your community. Features include emergency contact coordination, elderly check-in systems, child pickup assistance, and medical emergency response teams. Stay connected and ensure everyone's safety through verified community members.",
+      icon: "🚨",
+      stats: "300+ safety connections",
+      color: "bg-red-100 border-red-200",
+      badgeColor: "bg-red-500"
     }
   ];
 
@@ -62,7 +80,7 @@ const CommunityFeatures = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
             <Card key={index} className={`${feature.color} hover:shadow-xl transition-all duration-300 hover:-translate-y-1`}>
               <CardHeader>
