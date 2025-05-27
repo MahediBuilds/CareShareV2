@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import TestimonialsSection from '@/components/TestimonialsSection';
 import FAQSection from '@/components/FAQSection';
 import HowItWorksSection from '@/components/HowItWorksSection';
 import ImpactSection from '@/components/ImpactSection';
-import CommunitySpotlight from '@/components/CommunitySpotlight';
+import CommunityFeatures from '@/components/CommunityFeatures';
 import NewsletterSection from '@/components/NewsletterSection';
 
 const Homepage = () => {
@@ -133,8 +132,8 @@ const Homepage = () => {
         {/* Impact Section */}
         <ImpactSection />
 
-        {/* Community Spotlight */}
-        <CommunitySpotlight />
+        {/* Community Features */}
+        <CommunityFeatures />
 
         {/* Stats Section */}
         <section className="py-20 bg-white">
