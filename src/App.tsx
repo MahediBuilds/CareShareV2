@@ -15,6 +15,7 @@ import DonateClothes from "./pages/DonateClothes";
 import PostHelp from "./pages/PostHelp";
 import RequestErrand from "./pages/RequestErrand";
 import Profile from "./pages/Profile";
+import ContactUs from "./pages/ContactUs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -44,6 +45,7 @@ const App = () => (
               <Route path="/post-help" element={<PostHelp />} />
               <Route path="/request-errand" element={<RequestErrand />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/contact" element={<ContactUs />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </DataProvider>

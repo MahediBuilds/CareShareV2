@@ -57,6 +57,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       My Profile
                     </Button>
                   </Link>
+                  <Link to="/contact">
+                    <Button variant="ghost" className="text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50">
+                      Contact Us
+                    </Button>
+                  </Link>
                   <Button 
                     onClick={handleSignOut}
                     variant="outline" 
@@ -67,6 +72,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </>
               ) : (
                 <>
+                  <Link to="/contact">
+                    <Button variant="ghost" className="text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50">
+                      Contact Us
+                    </Button>
+                  </Link>
                   <Link to="/login">
                     <Button variant="ghost" className="text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50">
                       Login
