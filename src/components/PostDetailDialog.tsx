@@ -7,7 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { toast } from '@/hooks/use-toast';
-import { Mail, Phone, Loader } from 'lucide-react';
+import { Mail, Phone, Loader, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -29,6 +29,7 @@ interface Post {
   paymentType?: 'fixed' | 'negotiable';
   currency?: string;
   image?: string;
+  images?: string[];
 }
 
 interface PostDetailDialogProps {
@@ -41,14 +42,18 @@ const PostDetailDialog: React.FC<PostDetailDialogProps> = ({ post, children }) =
   const { claimPost } = useData();
   const [isLoading, setIsLoading] = React.useState(false);
   const [showContactInfo, setShowContactInfo] = React.useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
+
+  // Get images array - prioritize new images field, fallback to single image for backward compatibility
+  const displayImages = post.images && post.images.length > 0 ? post.images : (post.image ? [post.image] : []);
 
   // Debug log to see what image data we have
   React.useEffect(() => {
-    if (post.type === 'clothes' && post.image) {
-      console.log('Post image data:', post.image);
-      console.log('Is base64:', post.image.startsWith('data:'));
+    if (post.type === 'clothes' && displayImages.length > 0) {
+      console.log('Post images data:', displayImages);
+      console.log('Number of images:', displayImages.length);
     }
-  }, [post.image, post.type]);
+  }, [displayImages, post.type]);
 
   const getTimeUntilExpiry = (expiry: Date) => {
     const now = new Date();
@@ -99,6 +104,14 @@ const PostDetailDialog: React.FC<PostDetailDialogProps> = ({ post, children }) =
       title: "Successfully claimed!",
       description: `You have claimed this ${post.type}. Contact information is now available.`,
     });
+  };
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % displayImages.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length);
   };
 
   const ContactDialog = () => (
@@ -163,22 +176,80 @@ const PostDetailDialog: React.FC<PostDetailDialogProps> = ({ post, children }) =
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* Image for clothes posts */}
-          {post.type === 'clothes' && post.image && (
+          {/* Images for clothes posts */}
+          {post.type === 'clothes' && displayImages.length > 0 && (
             <div className="rounded-lg overflow-hidden">
-              {post.image.startsWith('data:') ? (
-                <img
-                  src={post.image}
-                  alt={post.title}
-                  className="w-full h-64 object-cover"
-                  onError={(e) => {
-                    console.log('Failed to load base64 image:', post.image?.substring(0, 50) + '...');
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
+              {displayImages.length === 1 ? (
+                // Single image display
+                displayImages[0].startsWith('data:') ? (
+                  <img
+                    src={displayImages[0]}
+                    alt={post.title}
+                    className="w-full h-64 object-cover"
+                    onError={(e) => {
+                      console.log('Failed to load image:', displayImages[0]?.substring(0, 50) + '...');
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-64 bg-gray-100 flex items-center justify-center">
+                    <p className="text-gray-500">Image not available</p>
+                  </div>
+                )
               ) : (
-                <div className="w-full h-64 bg-gray-100 flex items-center justify-center">
-                  <p className="text-gray-500">Image not available</p>
+                // Multiple images with navigation
+                <div className="relative">
+                  {displayImages[currentImageIndex].startsWith('data:') ? (
+                    <img
+                      src={displayImages[currentImageIndex]}
+                      alt={`${post.title} - Image ${currentImageIndex + 1}`}
+                      className="w-full h-64 object-cover"
+                      onError={(e) => {
+                        console.log('Failed to load image:', displayImages[currentImageIndex]?.substring(0, 50) + '...');
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-64 bg-gray-100 flex items-center justify-center">
+                      <p className="text-gray-500">Image not available</p>
+                    </div>
+                  )}
+                  
+                  {/* Navigation buttons */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white"
+                    onClick={prevImage}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white"
+                    onClick={nextImage}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                  
+                  {/* Image counter */}
+                  <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
+                    {currentImageIndex + 1} / {displayImages.length}
+                  </div>
+                  
+                  {/* Thumbnail dots */}
+                  <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                    {displayImages.map((_, index) => (
+                      <button
+                        key={index}
+                        className={`w-2 h-2 rounded-full transition-colors ${
+                          index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                        }`}
+                        onClick={() => setCurrentImageIndex(index)}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { toast } from '@/hooks/use-toast';
 import { BENGALURU_LOCALITIES, CLOTHING_CATEGORIES, CLOTHING_SIZES } from '@/lib/constants';
-import { Upload, X, Image } from 'lucide-react';
+import { Upload, X, Image, Plus } from 'lucide-react';
 
 const DonateClothes = () => {
   const { user } = useAuth();
@@ -26,8 +27,8 @@ const DonateClothes = () => {
     locality: '',
   });
   const [loading, setLoading] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,9 +42,30 @@ const DonateClothes = () => {
       return;
     }
 
+    // Validate that at least 1 image is uploaded
+    if (selectedImages.length === 0) {
+      toast({
+        title: "Images required",
+        description: "Please upload at least 1 image of the clothes",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
+      // Convert all images to base64 and store as array
+      const imageDataArray = await Promise.all(
+        selectedImages.map(file => {
+          return new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.readAsDataURL(file);
+          });
+        })
+      );
+
       addPost({
         type: 'clothes',
         title: formData.title,
@@ -53,7 +75,8 @@ const DonateClothes = () => {
         userEmail: user.email || '',
         size: formData.size,
         category: formData.category,
-        image: imagePreview || undefined, // Use the base64 data instead of filename
+        images: imageDataArray, // Store multiple images
+        image: imageDataArray[0], // Keep backward compatibility with single image
       });
 
       toast({
@@ -78,12 +101,26 @@ const DonateClothes = () => {
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = Array.from(e.target.files || []);
+    
+    if (files.length === 0) return;
+
+    // Check if adding these files would exceed the limit
+    if (selectedImages.length + files.length > 3) {
+      toast({
+        title: "Too many images",
+        description: "You can upload a maximum of 3 images",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate each file
+    for (const file of files) {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
         toast({
           title: "File too large",
-          description: "Please select an image smaller than 5MB",
+          description: `${file.name} is larger than 5MB. Please select smaller images`,
           variant: "destructive",
         });
         return;
@@ -92,26 +129,38 @@ const DonateClothes = () => {
       if (!file.type.startsWith('image/')) {
         toast({
           title: "Invalid file type",
-          description: "Please select an image file",
+          description: `${file.name} is not an image file`,
           variant: "destructive",
         });
         return;
       }
+    }
 
-      setSelectedImage(file);
-      
-      // Create preview URL
+    // Add new files to existing selection
+    const newSelectedImages = [...selectedImages, ...files];
+    setSelectedImages(newSelectedImages);
+    
+    // Create preview URLs for new files
+    const newPreviews = [...imagePreviews];
+    files.forEach(file => {
       const reader = new FileReader();
       reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
+        const result = e.target?.result as string;
+        newPreviews.push(result);
+        setImagePreviews([...newPreviews]);
       };
       reader.readAsDataURL(file);
-    }
+    });
+
+    // Reset the input
+    e.target.value = '';
   };
 
-  const removeImage = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
+  const removeImage = (index: number) => {
+    const newSelectedImages = selectedImages.filter((_, i) => i !== index);
+    const newImagePreviews = imagePreviews.filter((_, i) => i !== index);
+    setSelectedImages(newSelectedImages);
+    setImagePreviews(newImagePreviews);
   };
 
   if (!user) {
@@ -203,26 +252,40 @@ const DonateClothes = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="image">Add Photo (Optional)</Label>
-                <div className="border-2 border-dashed border-emerald-200 rounded-lg p-6 text-center">
-                  {imagePreview ? (
-                    <div className="relative">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="max-w-full h-48 object-cover mx-auto rounded-lg"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        className="absolute top-2 right-2"
-                        onClick={removeImage}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ) : (
+                <Label htmlFor="images">
+                  Add Photos * 
+                  <span className="text-sm text-gray-500 ml-2">
+                    ({selectedImages.length}/3 images - At least 1 required)
+                  </span>
+                </Label>
+                
+                {/* Image Previews */}
+                {imagePreviews.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border-2 border-emerald-200"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-1 right-1 h-6 w-6 p-0"
+                          onClick={() => removeImage(index)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload Area */}
+                {selectedImages.length < 3 && (
+                  <div className="border-2 border-dashed border-emerald-200 rounded-lg p-6 text-center">
                     <div className="space-y-2">
                       <Image className="w-12 h-12 mx-auto text-emerald-400" />
                       <div>
@@ -232,23 +295,24 @@ const DonateClothes = () => {
                           className="border-emerald-200 text-emerald-600 hover:bg-emerald-50"
                           onClick={() => document.getElementById('image-upload')?.click()}
                         >
-                          <Upload className="w-4 h-4 mr-2" />
-                          Upload Photo
+                          <Plus className="w-4 h-4 mr-2" />
+                          {selectedImages.length === 0 ? 'Upload Photos' : 'Add More Photos'}
                         </Button>
                         <p className="text-sm text-gray-500 mt-2">
-                          PNG, JPG up to 5MB
+                          PNG, JPG up to 5MB each. {selectedImages.length === 0 ? 'At least 1 image required.' : `${3 - selectedImages.length} more allowed.`}
                         </p>
                       </div>
                     </div>
-                  )}
-                  <Input
-                    id="image-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                </div>
+                    <Input
+                      id="image-upload"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -268,20 +332,20 @@ const DonateClothes = () => {
               </div>
 
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <h3 className="font-semibold text-blue-800 mb-2">💡 Tips for Clothes Donation</h3>
+                <h3 className="font-semibold text-blue-800 mb-2">📸 Photo Requirements</h3>
                 <ul className="text-sm text-blue-700 space-y-1">
-                  <li>• Ensure clothes are clean and in good condition</li>
-                  <li>• Be honest about any wear and tear</li>
-                  <li>• Include quantity if donating multiple items</li>
-                  <li>• Consider seasonal appropriateness</li>
-                  <li>• Adding a photo helps others see the condition</li>
+                  <li>• Upload 1-3 clear photos of the clothes</li>
+                  <li>• Show the overall condition and any defects</li>
+                  <li>• Include labels/tags if visible</li>
+                  <li>• Good lighting helps showcase the items better</li>
+                  <li>• Multiple angles are appreciated by recipients</li>
                 </ul>
               </div>
               
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-emerald-500 to-orange-500 hover:from-emerald-600 hover:to-orange-600 text-white"
-                disabled={loading}
+                disabled={loading || selectedImages.length === 0}
               >
                 {loading ? 'Posting...' : 'Post Clothes Donation'}
               </Button>
