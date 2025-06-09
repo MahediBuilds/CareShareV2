@@ -125,8 +125,30 @@ Please let me know how we can arrange the pickup/delivery.
 Best regards,
 ${user?.user_metadata?.full_name || user?.email || 'CareShare User'}`;
 
-    const mailtoUrl = `mailto:${post.userEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoUrl, '_blank');
+    const encodedSubject = encodeURIComponent(subject);
+    const encodedBody = encodeURIComponent(body);
+    const mailtoUrl = `mailto:${post.userEmail}?subject=${encodedSubject}&body=${encodedBody}`;
+    
+    console.log('Opening mailto URL:', mailtoUrl);
+    
+    // Try multiple methods to ensure it works across different browsers/devices
+    try {
+      window.location.href = mailtoUrl;
+    } catch (error) {
+      console.error('Failed to open mailto URL:', error);
+      // Fallback: copy email to clipboard and show toast
+      navigator.clipboard.writeText(post.userEmail).then(() => {
+        toast({
+          title: "Email copied!",
+          description: `Email address ${post.userEmail} has been copied to clipboard.`,
+        });
+      }).catch(() => {
+        toast({
+          title: "Email address",
+          description: `Please contact: ${post.userEmail}`,
+        });
+      });
+    }
   };
 
   const nextImage = () => {
