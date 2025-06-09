@@ -375,7 +375,7 @@ ${user?.user_metadata?.full_name || user?.email || 'CareShare User'}`;
 
       {/* Claim Success Dialog */}
       <Dialog open={showClaimSuccessDialog} onOpenChange={setShowClaimSuccessDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-center text-green-600">🎉 Successfully Claimed!</DialogTitle>
           </DialogHeader>
