@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,7 +25,7 @@ const AboutUs = () => {
       skills: ["Product Strategy", "User Research"]
     },
     {
-      name: "Tanmay Aggarwal",
+      name: "Tanmay Agarwal",
       role: "Co-Founder & Technical Lead",
       bio: "Engineering scalable solutions for community-driven platforms",
       skills: ["System Architecture", "Technical Leadership"]
