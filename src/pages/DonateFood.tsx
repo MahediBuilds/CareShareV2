@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { toast } from '@/hooks/use-toast';
 import { BENGALURU_LOCALITIES } from '@/lib/constants';
+import { Upload, X, Image, Plus } from 'lucide-react';
 
 const DonateFood = () => {
   const { user } = useAuth();
@@ -21,10 +21,12 @@ const DonateFood = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    expiryHours: '6',
+    expiry: '',
     locality: '',
   });
   const [loading, setLoading] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,12 +40,30 @@ const DonateFood = () => {
       return;
     }
 
+    // Validate that at least 1 image is uploaded
+    if (selectedImages.length === 0) {
+      toast({
+        title: "Images required",
+        description: "Please upload at least 1 image of the food",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
-    const expiryDate = new Date();
-    expiryDate.setHours(expiryDate.getHours() + parseInt(formData.expiryHours));
-
     try {
+      // Convert all images to base64 and store as array
+      const imageDataArray = await Promise.all(
+        selectedImages.map(file => {
+          return new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.readAsDataURL(file);
+          });
+        })
+      );
+
       addPost({
         type: 'food',
         title: formData.title,
@@ -51,7 +71,9 @@ const DonateFood = () => {
         locality: formData.locality,
         userId: user.id,
         userEmail: user.email || '',
-        expiry: expiryDate,
+        expiry: new Date(formData.expiry),
+        images: imageDataArray, // Store multiple images
+        image: imageDataArray[0], // Keep backward compatibility with single image
       });
 
       toast({
@@ -73,6 +95,69 @@ const DonateFood = () => {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    
+    if (files.length === 0) return;
+
+    // Check if adding these files would exceed the limit
+    if (selectedImages.length + files.length > 3) {
+      toast({
+        title: "Too many images",
+        description: "You can upload a maximum of 3 images",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate each file
+    for (const file of files) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "File too large",
+          description: `${file.name} is larger than 5MB. Please select smaller images`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file type",
+          description: `${file.name} is not an image file`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Add new files to existing selection
+    const newSelectedImages = [...selectedImages, ...files];
+    setSelectedImages(newSelectedImages);
+    
+    // Create preview URLs for new files
+    const newPreviews = [...imagePreviews];
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        newPreviews.push(result);
+        setImagePreviews([...newPreviews]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Reset the input
+    e.target.value = '';
+  };
+
+  const removeImage = (index: number) => {
+    const newSelectedImages = selectedImages.filter((_, i) => i !== index);
+    const newImagePreviews = imagePreviews.filter((_, i) => i !== index);
+    setSelectedImages(newSelectedImages);
+    setImagePreviews(newImagePreviews);
   };
 
   if (!user) {
@@ -101,19 +186,19 @@ const DonateFood = () => {
             <CardTitle className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-orange-600 bg-clip-text text-transparent">
               🍽️ Donate Food
             </CardTitle>
-            <p className="text-gray-600">Share leftover food with those in need</p>
+            <p className="text-gray-600">Share excess food with those who need it</p>
           </CardHeader>
           
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="title">Food Title *</Label>
+                <Label htmlFor="title">Food Item *</Label>
                 <Input
                   id="title"
                   type="text"
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
-                  placeholder="e.g., Homemade Rice and Dal"
+                  placeholder="e.g., Home-cooked rice and curry, Sandwiches"
                   required
                   className="border-emerald-200 focus:border-emerald-400"
                 />
@@ -125,27 +210,87 @@ const DonateFood = () => {
                   id="description"
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="Describe the food, quantity, any special notes..."
+                  placeholder="Describe the food items, quantity, cooking time, etc."
                   required
                   className="border-emerald-200 focus:border-emerald-400 min-h-[100px]"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="expiry">Expiry Time *</Label>
-                <Select value={formData.expiryHours} onValueChange={(value) => handleInputChange('expiryHours', value)}>
-                  <SelectTrigger className="border-emerald-200 focus:border-emerald-400">
-                    <SelectValue placeholder="How long is this food good for?" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="2">2 hours</SelectItem>
-                    <SelectItem value="4">4 hours</SelectItem>
-                    <SelectItem value="6">6 hours</SelectItem>
-                    <SelectItem value="8">8 hours</SelectItem>
-                    <SelectItem value="12">12 hours</SelectItem>
-                    <SelectItem value="24">24 hours</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="images">
+                  Add Photos * 
+                  <span className="text-sm text-gray-500 ml-2">
+                    ({selectedImages.length}/3 images - At least 1 required)
+                  </span>
+                </Label>
+                
+                {/* Image Previews */}
+                {imagePreviews.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border-2 border-emerald-200"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-1 right-1 h-6 w-6 p-0"
+                          onClick={() => removeImage(index)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload Area */}
+                {selectedImages.length < 3 && (
+                  <div className="border-2 border-dashed border-emerald-200 rounded-lg p-6 text-center">
+                    <div className="space-y-2">
+                      <Image className="w-12 h-12 mx-auto text-emerald-400" />
+                      <div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                          onClick={() => document.getElementById('image-upload')?.click()}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          {selectedImages.length === 0 ? 'Upload Photos' : 'Add More Photos'}
+                        </Button>
+                        <p className="text-sm text-gray-500 mt-2">
+                          PNG, JPG up to 5MB each. {selectedImages.length === 0 ? 'At least 1 image required.' : `${3 - selectedImages.length} more allowed.`}
+                        </p>
+                      </div>
+                    </div>
+                    <Input
+                      id="image-upload"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="expiry">Best Before *</Label>
+                <Input
+                  id="expiry"
+                  type="datetime-local"
+                  value={formData.expiry}
+                  onChange={(e) => handleInputChange('expiry', e.target.value)}
+                  required
+                  min={new Date().toISOString().slice(0, 16)}
+                  className="border-emerald-200 focus:border-emerald-400"
+                />
               </div>
 
               <div className="space-y-2">
@@ -164,20 +309,21 @@ const DonateFood = () => {
                 </Select>
               </div>
 
-              <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
-                <h3 className="font-semibold text-emerald-800 mb-2">💡 Tips for Food Donation</h3>
-                <ul className="text-sm text-emerald-700 space-y-1">
-                  <li>• Ensure food is fresh and safe to consume</li>
-                  <li>• Package food properly for transport</li>
-                  <li>• Be responsive to messages from interested people</li>
-                  <li>• Consider dietary restrictions and allergies</li>
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h3 className="font-semibold text-blue-800 mb-2">📸 Photo Requirements</h3>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• Upload 1-3 clear photos of the food</li>
+                  <li>• Show the food packaging or containers</li>
+                  <li>• Include any labels or cooking details if visible</li>
+                  <li>• Good lighting helps showcase the food better</li>
+                  <li>• Multiple angles help recipients understand portion size</li>
                 </ul>
               </div>
               
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-emerald-500 to-orange-500 hover:from-emerald-600 hover:to-orange-600 text-white"
-                disabled={loading}
+                disabled={loading || selectedImages.length === 0}
               >
                 {loading ? 'Posting...' : 'Post Food Donation'}
               </Button>

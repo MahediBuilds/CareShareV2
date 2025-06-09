@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { toast } from '@/hooks/use-toast';
-import { Mail, Phone, Loader } from 'lucide-react';
+import { Mail, Phone, Loader, ChevronLeft, ChevronRight } from 'lucide-react';
 import PostDetailDialog from './PostDetailDialog';
 
 interface Post {
@@ -29,6 +30,8 @@ interface Post {
   payment?: number;
   paymentType?: 'fixed' | 'negotiable';
   currency?: string;
+  image?: string;
+  images?: string[];
 }
 
 interface PostCardProps {
@@ -40,6 +43,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const { claimPost } = useData();
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Get images array - prioritize new images field, fallback to single image for backward compatibility
+  const displayImages = post.images && post.images.length > 0 ? post.images : (post.image ? [post.image] : []);
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -102,6 +109,14 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     });
   };
 
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % displayImages.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length);
+  };
+
   const ContactDialog = () => (
     <Dialog>
       <DialogTrigger asChild>
@@ -157,6 +172,85 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       </CardHeader>
       
       <CardContent className="space-y-3">
+        {/* Image Slideshow for all posts with images */}
+        {displayImages.length > 0 && (
+          <div className="relative rounded-lg overflow-hidden mb-3">
+            {displayImages.length === 1 ? (
+              // Single image display
+              displayImages[0].startsWith('data:') ? (
+                <img
+                  src={displayImages[0]}
+                  alt={post.title}
+                  className="w-full h-40 object-cover"
+                  onError={(e) => {
+                    console.log('Failed to load image:', displayImages[0]?.substring(0, 50) + '...');
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="w-full h-40 bg-gray-100 flex items-center justify-center">
+                  <p className="text-gray-500 text-sm">Image not available</p>
+                </div>
+              )
+            ) : (
+              // Multiple images with navigation
+              <div className="relative">
+                {displayImages[currentImageIndex].startsWith('data:') ? (
+                  <img
+                    src={displayImages[currentImageIndex]}
+                    alt={`${post.title} - Image ${currentImageIndex + 1}`}
+                    className="w-full h-40 object-cover"
+                    onError={(e) => {
+                      console.log('Failed to load image:', displayImages[currentImageIndex]?.substring(0, 50) + '...');
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-40 bg-gray-100 flex items-center justify-center">
+                    <p className="text-gray-500 text-sm">Image not available</p>
+                  </div>
+                )}
+                
+                {/* Navigation buttons */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="absolute left-1 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white h-8 w-8 p-0"
+                  onClick={prevImage}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white h-8 w-8 p-0"
+                  onClick={nextImage}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+                
+                {/* Image counter */}
+                <div className="absolute bottom-1 right-1 bg-black/60 text-white px-2 py-1 rounded text-xs">
+                  {currentImageIndex + 1}/{displayImages.length}
+                </div>
+                
+                {/* Thumbnail dots */}
+                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex space-x-1">
+                  {displayImages.map((_, index) => (
+                    <button
+                      key={index}
+                      className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                        index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                      }`}
+                      onClick={() => setCurrentImageIndex(index)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <p className="text-gray-600 text-sm line-clamp-3">{post.description}</p>
         
         <div className="flex flex-wrap gap-2">
@@ -261,19 +355,14 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     </Card>
   );
 
-  // For clothes posts, wrap in PostDetailDialog to make them clickable
-  if (post.type === 'clothes') {
-    return (
-      <PostDetailDialog post={post}>
-        <div className="cursor-pointer">
-          {CardContent_Component}
-        </div>
-      </PostDetailDialog>
-    );
-  }
-
-  // For other posts, return the card as is
-  return CardContent_Component;
+  // Wrap in PostDetailDialog to make cards clickable for detailed view
+  return (
+    <PostDetailDialog post={post}>
+      <div className="cursor-pointer">
+        {CardContent_Component}
+      </div>
+    </PostDetailDialog>
+  );
 };
 
 export default PostCard;

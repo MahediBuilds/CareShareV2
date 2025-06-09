@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { toast } from '@/hooks/use-toast';
 import { BENGALURU_LOCALITIES } from '@/lib/constants';
+import { Upload, X, Image, Plus } from 'lucide-react';
 
 const PostHelp = () => {
   const { user } = useAuth();
@@ -25,6 +25,8 @@ const PostHelp = () => {
     locality: '',
   });
   const [loading, setLoading] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +34,17 @@ const PostHelp = () => {
     if (!user) {
       toast({
         title: "Please login",
-        description: "You need to be logged in to post help tasks",
+        description: "You need to be logged in to offer help",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate that at least 1 image is uploaded
+    if (selectedImages.length === 0) {
+      toast({
+        title: "Images required",
+        description: "Please upload at least 1 image to show what help you're offering",
         variant: "destructive",
       });
       return;
@@ -41,6 +53,17 @@ const PostHelp = () => {
     setLoading(true);
 
     try {
+      // Convert all images to base64 and store as array
+      const imageDataArray = await Promise.all(
+        selectedImages.map(file => {
+          return new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.readAsDataURL(file);
+          });
+        })
+      );
+
       addPost({
         type: 'help',
         title: formData.title,
@@ -49,10 +72,12 @@ const PostHelp = () => {
         userId: user.id,
         userEmail: user.email || '',
         timeNeeded: formData.timeNeeded,
+        images: imageDataArray, // Store multiple images
+        image: imageDataArray[0], // Keep backward compatibility with single image
       });
 
       toast({
-        title: "Help task posted!",
+        title: "Help offer posted!",
         description: "Your help offer has been shared with the community.",
       });
 
@@ -60,7 +85,7 @@ const PostHelp = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to post help task",
+        description: "Failed to post help offer",
         variant: "destructive",
       });
     } finally {
@@ -72,6 +97,69 @@ const PostHelp = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    
+    if (files.length === 0) return;
+
+    // Check if adding these files would exceed the limit
+    if (selectedImages.length + files.length > 3) {
+      toast({
+        title: "Too many images",
+        description: "You can upload a maximum of 3 images",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate each file
+    for (const file of files) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "File too large",
+          description: `${file.name} is larger than 5MB. Please select smaller images`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file type",
+          description: `${file.name} is not an image file`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Add new files to existing selection
+    const newSelectedImages = [...selectedImages, ...files];
+    setSelectedImages(newSelectedImages);
+    
+    // Create preview URLs for new files
+    const newPreviews = [...imagePreviews];
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        newPreviews.push(result);
+        setImagePreviews([...newPreviews]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Reset the input
+    e.target.value = '';
+  };
+
+  const removeImage = (index: number) => {
+    const newSelectedImages = selectedImages.filter((_, i) => i !== index);
+    const newImagePreviews = imagePreviews.filter((_, i) => i !== index);
+    setSelectedImages(newSelectedImages);
+    setImagePreviews(newImagePreviews);
+  };
+
   if (!user) {
     return (
       <Layout>
@@ -79,7 +167,7 @@ const PostHelp = () => {
           <Card className="text-center p-8">
             <CardContent>
               <h2 className="text-2xl font-bold mb-4">Please Login</h2>
-              <p className="text-gray-600 mb-4">You need to be logged in to post help tasks</p>
+              <p className="text-gray-600 mb-4">You need to be logged in to offer help</p>
               <Button onClick={() => navigate('/login')} className="bg-gradient-to-r from-emerald-500 to-orange-500 hover:from-emerald-600 hover:to-orange-600 text-white">
                 Login
               </Button>
@@ -98,7 +186,7 @@ const PostHelp = () => {
             <CardTitle className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-orange-600 bg-clip-text text-transparent">
               🤝 Offer Help
             </CardTitle>
-            <p className="text-gray-600">Share how you can help your community</p>
+            <p className="text-gray-600">Share your skills and time to help others</p>
           </CardHeader>
           
           <CardContent>
@@ -110,37 +198,100 @@ const PostHelp = () => {
                   type="text"
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
-                  placeholder="e.g., Computer Setup Help, Moving Assistance"
+                  placeholder="e.g., Computer Repair, Tutoring, Cooking"
                   required
                   className="border-emerald-200 focus:border-emerald-400"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Task Description *</Label>
+                <Label htmlFor="description">Description *</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="Describe the task you can help with, your skills, availability..."
+                  placeholder="Describe what help you can provide, your skills, availability..."
                   required
                   className="border-emerald-200 focus:border-emerald-400 min-h-[100px]"
                 />
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="images">
+                  Add Photos * 
+                  <span className="text-sm text-gray-500 ml-2">
+                    ({selectedImages.length}/3 images - At least 1 required)
+                  </span>
+                </Label>
+                
+                {/* Image Previews */}
+                {imagePreviews.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border-2 border-emerald-200"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-1 right-1 h-6 w-6 p-0"
+                          onClick={() => removeImage(index)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload Area */}
+                {selectedImages.length < 3 && (
+                  <div className="border-2 border-dashed border-emerald-200 rounded-lg p-6 text-center">
+                    <div className="space-y-2">
+                      <Image className="w-12 h-12 mx-auto text-emerald-400" />
+                      <div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                          onClick={() => document.getElementById('image-upload')?.click()}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          {selectedImages.length === 0 ? 'Upload Photos' : 'Add More Photos'}
+                        </Button>
+                        <p className="text-sm text-gray-500 mt-2">
+                          PNG, JPG up to 5MB each. {selectedImages.length === 0 ? 'At least 1 image required.' : `${3 - selectedImages.length} more allowed.`}
+                        </p>
+                      </div>
+                    </div>
+                    <Input
+                      id="image-upload"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="timeNeeded">Time Commitment *</Label>
                 <Select value={formData.timeNeeded} onValueChange={(value) => handleInputChange('timeNeeded', value)}>
                   <SelectTrigger className="border-emerald-200 focus:border-emerald-400">
-                    <SelectValue placeholder="How much time can you dedicate?" />
+                    <SelectValue placeholder="Select time commitment" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="30 minutes">30 minutes</SelectItem>
-                    <SelectItem value="1 hour">1 hour</SelectItem>
-                    <SelectItem value="2 hours">2 hours</SelectItem>
+                    <SelectItem value="1-2 hours">1-2 hours</SelectItem>
                     <SelectItem value="Half day">Half day</SelectItem>
                     <SelectItem value="Full day">Full day</SelectItem>
-                    <SelectItem value="Multiple days">Multiple days</SelectItem>
+                    <SelectItem value="Few days">Few days</SelectItem>
+                    <SelectItem value="Weekly">Weekly</SelectItem>
                     <SelectItem value="Flexible">Flexible</SelectItem>
                   </SelectContent>
                 </Select>
@@ -162,22 +313,20 @@ const PostHelp = () => {
                 </Select>
               </div>
 
-              <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                <h3 className="font-semibold text-purple-800 mb-2">💡 Examples of Help You Can Offer</h3>
-                <ul className="text-sm text-purple-700 space-y-1">
-                  <li>• Tech support and computer troubleshooting</li>
-                  <li>• Moving furniture or heavy items</li>
-                  <li>• Tutoring or teaching skills</li>
-                  <li>• Pet sitting or walking</li>
-                  <li>• Home repairs and maintenance</li>
-                  <li>• Transportation assistance</li>
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h3 className="font-semibold text-blue-800 mb-2">📸 Photo Requirements</h3>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• Upload 1-3 photos related to the help you're offering</li>
+                  <li>• Show your work samples, tools, or relevant skills</li>
+                  <li>• Include certificates or credentials if applicable</li>
+                  <li>• Professional photos help build trust with recipients</li>
                 </ul>
               </div>
               
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-emerald-500 to-orange-500 hover:from-emerald-600 hover:to-orange-600 text-white"
-                disabled={loading}
+                disabled={loading || selectedImages.length === 0}
               >
                 {loading ? 'Posting...' : 'Post Help Offer'}
               </Button>

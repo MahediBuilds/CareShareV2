@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,11 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { toast } from '@/hooks/use-toast';
 import { BENGALURU_LOCALITIES } from '@/lib/constants';
+import { Upload, X, Image, Plus } from 'lucide-react';
 
 const RequestErrand = () => {
   const { user } = useAuth();
@@ -26,7 +27,22 @@ const RequestErrand = () => {
     paymentType: 'fixed' as 'fixed' | 'negotiable',
     currency: 'INR',
   });
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [customItem, setCustomItem] = useState('');
   const [loading, setLoading] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+
+  const commonItems = [
+    'Grocery Shopping',
+    'Medicine Pickup',
+    'Package Delivery',
+    'Document Submission',
+    'Bank Work',
+    'Food Delivery',
+    'Shopping',
+    'Transportation',
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,10 +56,20 @@ const RequestErrand = () => {
       return;
     }
 
-    if (!formData.payment || parseFloat(formData.payment) <= 0) {
+    // Validate that at least 1 image is uploaded
+    if (selectedImages.length === 0) {
       toast({
-        title: "Payment required",
-        description: "Please specify a valid payment amount for this errand",
+        title: "Images required",
+        description: "Please upload at least 1 image related to your errand request",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedItems.length === 0 && !customItem.trim()) {
+      toast({
+        title: "Items required",
+        description: "Please select at least one item or add a custom item",
         variant: "destructive",
       });
       return;
@@ -52,6 +78,22 @@ const RequestErrand = () => {
     setLoading(true);
 
     try {
+      // Convert all images to base64 and store as array
+      const imageDataArray = await Promise.all(
+        selectedImages.map(file => {
+          return new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.readAsDataURL(file);
+          });
+        })
+      );
+
+      const allItems = [...selectedItems];
+      if (customItem.trim()) {
+        allItems.push(customItem.trim());
+      }
+
       addPost({
         type: 'errand',
         title: formData.title,
@@ -59,13 +101,16 @@ const RequestErrand = () => {
         locality: formData.locality,
         userId: user.id,
         userEmail: user.email || '',
-        payment: parseFloat(formData.payment),
+        items: allItems,
+        payment: formData.payment ? parseFloat(formData.payment) : undefined,
         paymentType: formData.paymentType,
         currency: formData.currency,
+        images: imageDataArray, // Store multiple images
+        image: imageDataArray[0], // Keep backward compatibility with single image
       });
 
       toast({
-        title: "Paid errand posted!",
+        title: "Errand request posted!",
         description: "Your errand request has been shared with the community.",
       });
 
@@ -85,6 +130,77 @@ const RequestErrand = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleItemToggle = (item: string, checked: boolean) => {
+    if (checked) {
+      setSelectedItems(prev => [...prev, item]);
+    } else {
+      setSelectedItems(prev => prev.filter(i => i !== item));
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    
+    if (files.length === 0) return;
+
+    // Check if adding these files would exceed the limit
+    if (selectedImages.length + files.length > 3) {
+      toast({
+        title: "Too many images",
+        description: "You can upload a maximum of 3 images",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate each file
+    for (const file of files) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "File too large",
+          description: `${file.name} is larger than 5MB. Please select smaller images`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file type",
+          description: `${file.name} is not an image file`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Add new files to existing selection
+    const newSelectedImages = [...selectedImages, ...files];
+    setSelectedImages(newSelectedImages);
+    
+    // Create preview URLs for new files
+    const newPreviews = [...imagePreviews];
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        newPreviews.push(result);
+        setImagePreviews([...newPreviews]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Reset the input
+    e.target.value = '';
+  };
+
+  const removeImage = (index: number) => {
+    const newSelectedImages = selectedImages.filter((_, i) => i !== index);
+    const newImagePreviews = imagePreviews.filter((_, i) => i !== index);
+    setSelectedImages(newSelectedImages);
+    setImagePreviews(newImagePreviews);
+  };
+
   if (!user) {
     return (
       <Layout>
@@ -92,7 +208,7 @@ const RequestErrand = () => {
           <Card className="text-center p-8">
             <CardContent>
               <h2 className="text-2xl font-bold mb-4">Please Login</h2>
-              <p className="text-gray-600 mb-4">You need to be logged in to request paid errands</p>
+              <p className="text-gray-600 mb-4">You need to be logged in to request errands</p>
               <Button onClick={() => navigate('/login')} className="bg-gradient-to-r from-emerald-500 to-orange-500 hover:from-emerald-600 hover:to-orange-600 text-white">
                 Login
               </Button>
@@ -109,9 +225,9 @@ const RequestErrand = () => {
         <Card className="border-emerald-100">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-orange-600 bg-clip-text text-transparent">
-              💰 Request Paid Errand
+              🛒 Request Errand
             </CardTitle>
-            <p className="text-gray-600">Post a task and offer payment to community helpers</p>
+            <p className="text-gray-600">Ask for help with your tasks and errands</p>
           </CardHeader>
           
           <CardContent>
@@ -123,58 +239,142 @@ const RequestErrand = () => {
                   type="text"
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
-                  placeholder="e.g., Grocery Shopping, Document Pickup, Pet Walking, House Cleaning"
+                  placeholder="e.g., Pick up groceries, Submit documents"
                   required
                   className="border-emerald-200 focus:border-emerald-400"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Detailed Description *</Label>
+                <Label htmlFor="description">Description *</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="Describe the task in detail: what needs to be done, when, any special requirements, time estimate..."
+                  placeholder="Provide details about the errand, timing, special instructions..."
                   required
                   className="border-emerald-200 focus:border-emerald-400 min-h-[100px]"
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="payment">Payment Amount *</Label>
-                  <div className="flex gap-2">
-                    <Select value={formData.currency} onValueChange={(value) => handleInputChange('currency', value)}>
-                      <SelectTrigger className="w-20 border-emerald-200 focus:border-emerald-400">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="INR">₹</SelectItem>
-                        <SelectItem value="USD">$</SelectItem>
-                      </SelectContent>
-                    </Select>
+              <div className="space-y-2">
+                <Label htmlFor="images">
+                  Add Photos * 
+                  <span className="text-sm text-gray-500 ml-2">
+                    ({selectedImages.length}/3 images - At least 1 required)
+                  </span>
+                </Label>
+                
+                {/* Image Previews */}
+                {imagePreviews.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border-2 border-emerald-200"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-1 right-1 h-6 w-6 p-0"
+                          onClick={() => removeImage(index)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload Area */}
+                {selectedImages.length < 3 && (
+                  <div className="border-2 border-dashed border-emerald-200 rounded-lg p-6 text-center">
+                    <div className="space-y-2">
+                      <Image className="w-12 h-12 mx-auto text-emerald-400" />
+                      <div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                          onClick={() => document.getElementById('image-upload')?.click()}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          {selectedImages.length === 0 ? 'Upload Photos' : 'Add More Photos'}
+                        </Button>
+                        <p className="text-sm text-gray-500 mt-2">
+                          PNG, JPG up to 5MB each. {selectedImages.length === 0 ? 'At least 1 image required.' : `${3 - selectedImages.length} more allowed.`}
+                        </p>
+                      </div>
+                    </div>
                     <Input
-                      id="payment"
-                      type="number"
-                      min="1"
-                      value={formData.payment}
-                      onChange={(e) => handleInputChange('payment', e.target.value)}
-                      placeholder="500"
-                      required
-                      className="border-emerald-200 focus:border-emerald-400"
+                      id="image-upload"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageChange}
+                      className="hidden"
                     />
                   </div>
-                </div>
+                )}
+              </div>
 
+              <div className="space-y-3">
+                <Label>What do you need help with? *</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {commonItems.map((item) => (
+                    <div key={item} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={item}
+                        checked={selectedItems.includes(item)}
+                        onCheckedChange={(checked) => handleItemToggle(item, checked as boolean)}
+                        className="border-emerald-300 data-[state=checked]:bg-emerald-500"
+                      />
+                      <Label htmlFor={item} className="text-sm font-normal">
+                        {item}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                
                 <div className="space-y-2">
-                  <Label>Payment Type *</Label>
-                  <Select value={formData.paymentType} onValueChange={(value: 'fixed' | 'negotiable') => handleInputChange('paymentType', value)}>
+                  <Label htmlFor="custom-item">Other (specify)</Label>
+                  <Input
+                    id="custom-item"
+                    type="text"
+                    value={customItem}
+                    onChange={(e) => setCustomItem(e.target.value)}
+                    placeholder="Enter custom item/service"
+                    className="border-emerald-200 focus:border-emerald-400"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="payment">Payment Amount</Label>
+                  <Input
+                    id="payment"
+                    type="number"
+                    value={formData.payment}
+                    onChange={(e) => handleInputChange('payment', e.target.value)}
+                    placeholder="Amount"
+                    min="0"
+                    step="0.01"
+                    className="border-emerald-200 focus:border-emerald-400"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="paymentType">Payment Type</Label>
+                  <Select value={formData.paymentType} onValueChange={(value) => handleInputChange('paymentType', value)}>
                     <SelectTrigger className="border-emerald-200 focus:border-emerald-400">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="fixed">Fixed Amount</SelectItem>
+                      <SelectItem value="fixed">Fixed</SelectItem>
                       <SelectItem value="negotiable">Negotiable</SelectItem>
                     </SelectContent>
                   </Select>
@@ -197,37 +397,22 @@ const RequestErrand = () => {
                 </Select>
               </div>
 
-              <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                <h3 className="font-semibold text-orange-800 mb-2">💡 Tips for Paid Errands</h3>
-                <ul className="text-sm text-orange-700 space-y-1">
-                  <li>• Be clear about the task requirements and timeline</li>
-                  <li>• Offer fair payment based on time and effort required</li>
-                  <li>• Specify if any special skills or equipment are needed</li>
-                  <li>• Be available to communicate with potential helpers</li>
-                  <li>• Consider payment method (cash, UPI, etc.) beforehand</li>
-                </ul>
-              </div>
-
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <h3 className="font-semibold text-blue-800 mb-2">🎯 Popular Errand Types</h3>
-                <div className="grid grid-cols-2 gap-2 text-sm text-blue-700">
-                  <div>• Grocery shopping</div>
-                  <div>• Document pickup/delivery</div>
-                  <div>• House cleaning</div>
-                  <div>• Pet care/walking</div>
-                  <div>• Appliance repair coordination</div>
-                  <div>• Queue standing</div>
-                  <div>• Event setup help</div>
-                  <div>• Moving assistance</div>
-                </div>
+                <h3 className="font-semibold text-blue-800 mb-2">📸 Photo Requirements</h3>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• Upload 1-3 photos related to your errand request</li>
+                  <li>• Show shopping lists, documents, or location maps</li>
+                  <li>• Include any reference materials that help explain the task</li>
+                  <li>• Clear photos help volunteers understand your requirements</li>
+                </ul>
               </div>
               
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-emerald-500 to-orange-500 hover:from-emerald-600 hover:to-orange-600 text-white"
-                disabled={loading}
+                disabled={loading || selectedImages.length === 0}
               >
-                {loading ? 'Posting...' : 'Post Paid Errand'}
+                {loading ? 'Posting...' : 'Post Errand Request'}
               </Button>
             </form>
           </CardContent>
