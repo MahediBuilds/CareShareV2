@@ -21,12 +21,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         title: "Logged out successfully",
         description: "Come back soon!",
       });
-      navigate('/');
     } catch (error) {
+      // Even if signOut fails, show success message since we force cleanup
       toast({
-        title: "Error",
-        description: "Failed to log out",
-        variant: "destructive",
+        title: "Logged out successfully",
+        description: "Come back soon!",
       });
     }
   };

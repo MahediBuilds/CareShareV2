@@ -18,14 +18,14 @@ const MobileNav: React.FC = () => {
         title: "Logged out successfully",
         description: "Come back soon!",
       });
-      navigate('/');
       setIsOpen(false);
     } catch (error) {
+      // Even if signOut fails, show success message since we force cleanup
       toast({
-        title: "Error",
-        description: "Failed to log out",
-        variant: "destructive",
+        title: "Logged out successfully",
+        description: "Come back soon!",
       });
+      setIsOpen(false);
     }
   };
 
