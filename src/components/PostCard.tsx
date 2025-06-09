@@ -109,6 +109,26 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     });
   };
 
+  const handleContactOwner = () => {
+    const subject = `Regarding your ${post.type}: ${post.title}`;
+    const body = `Hi,
+
+I saw your post about "${post.title}" on CareShare and I'm interested.
+
+Post Details:
+- Type: ${post.type}
+- Location: ${post.locality}
+- Description: ${post.description}
+
+Please let me know how we can arrange the pickup/delivery.
+
+Best regards,
+${user?.user_metadata?.full_name || user?.email || 'CareShare User'}`;
+
+    const mailtoUrl = `mailto:${post.userEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoUrl, '_blank');
+  };
+
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % displayImages.length);
   };
