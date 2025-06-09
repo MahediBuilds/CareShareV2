@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -114,6 +113,30 @@ const PostDetailDialog: React.FC<PostDetailDialogProps> = ({ post, children }) =
     setCurrentImageIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length);
   };
 
+  const handleEmailClick = (email: string) => {
+    try {
+      const subject = encodeURIComponent(`Regarding: ${post.title}`);
+      const body = encodeURIComponent(`Hi,\n\nI'm interested in your ${post.type} post "${post.title}" on CareShare.\n\nBest regards`);
+      const mailtoUrl = `mailto:${email}?subject=${subject}&body=${body}`;
+      
+      window.location.href = mailtoUrl;
+    } catch (error) {
+      console.error('Error opening mail app:', error);
+      // Fallback: copy email to clipboard
+      navigator.clipboard.writeText(email).then(() => {
+        toast({
+          title: "Email copied to clipboard",
+          description: `${email} has been copied to your clipboard`,
+        });
+      }).catch(() => {
+        toast({
+          title: "Email address",
+          description: email,
+        });
+      });
+    }
+  };
+
   const ContactDialog = () => (
     <Dialog>
       <DialogTrigger asChild>
@@ -131,7 +154,12 @@ const PostDetailDialog: React.FC<PostDetailDialogProps> = ({ post, children }) =
             <Mail className="w-5 h-5 text-emerald-600" />
             <div>
               <p className="font-medium">Email</p>
-              <p className="text-gray-600">{post.userEmail}</p>
+              <button 
+                onClick={() => handleEmailClick(post.userEmail)}
+                className="text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer transition-colors"
+              >
+                {post.userEmail}
+              </button>
             </div>
           </div>
           {user?.user_metadata?.phone && (
@@ -269,7 +297,12 @@ const PostDetailDialog: React.FC<PostDetailDialogProps> = ({ post, children }) =
             </div>
             <div>
               <h4 className="font-medium text-gray-700 mb-1">Posted by</h4>
-              <p className="text-gray-600">{post.userEmail}</p>
+              <button 
+                onClick={() => handleEmailClick(post.userEmail)}
+                className="text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer transition-colors text-left"
+              >
+                {post.userEmail}
+              </button>
             </div>
             {post.size && (
               <div>
