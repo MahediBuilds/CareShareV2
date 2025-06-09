@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,6 +43,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showClaimSuccessDialog, setShowClaimSuccessDialog] = useState(false);
 
   // Get images array - prioritize new images field, fallback to single image for backward compatibility
   const displayImages = post.images && post.images.length > 0 ? post.images : (post.image ? [post.image] : []);
@@ -100,12 +100,12 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     claimPost(post.id, user.id);
-    setShowContactInfo(true);
     setIsLoading(false);
+    setShowClaimSuccessDialog(true);
     
     toast({
       title: "Successfully claimed!",
-      description: `You have claimed this ${post.type}. Contact information is now available.`,
+      description: `You have claimed this ${post.type}. You can now contact the owner.`,
     });
   };
 
@@ -352,6 +352,43 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           </AlertDialog>
         )}
       </CardFooter>
+
+      {/* Claim Success Dialog */}
+      <Dialog open={showClaimSuccessDialog} onOpenChange={setShowClaimSuccessDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-center text-green-600">🎉 Successfully Claimed!</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-center">
+            <p className="text-gray-600">
+              You have successfully claimed "{post.title}". Now you can contact the owner to arrange pickup/delivery.
+            </p>
+            <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+              <h3 className="font-semibold text-emerald-800 mb-2">Next Steps:</h3>
+              <ul className="text-sm text-emerald-700 space-y-1 text-left">
+                <li>• Contact the owner using the button below</li>
+                <li>• Arrange a convenient pickup/delivery time</li>
+                <li>• Coordinate the meeting location</li>
+                <li>• Complete the exchange safely</li>
+              </ul>
+            </div>
+            <Button 
+              onClick={handleContactOwner}
+              className="w-full bg-gradient-to-r from-emerald-500 to-orange-500 hover:from-emerald-600 hover:to-orange-600 text-white"
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              Contact Owner
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowClaimSuccessDialog(false)}
+              className="w-full"
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 
